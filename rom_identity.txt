@@ -1,0 +1,26 @@
+# ROM identity for Looney Tunes B-Ball — the single source of truth.
+#
+# Read by three consumers, so a revision change is made once, here:
+#   - the build   (CMake generates snesrecomp_rom_identity.h from this file)
+#   - tools/regen.sh
+#   - .github/workflows/release.yml
+#
+# Format is `key = value`, one per line; `#` starts a comment. Values may be
+# quoted. Leaving a digest empty means the build cannot verify a ROM it is
+# handed — it will say so rather than accept it.
+
+display_name    = Looney Tunes B-Ball
+rom_file        = Looney Tunes B-Ball (USA).sfc
+# Every digest of the bare image (copier header stripped), so the Retro
+# catalog can take a submission's identity from this file rather than ask
+# the submitter to hash the ROM again. The build verifies on crc32/sha256.
+expected_crc32  = 6d3bc96f
+expected_md5    = 9cc7336325379139afc58d12a776696a
+expected_sha1   = 83affabb0d0c3d01bdb0969359df4570e457fb4e
+expected_sha256 = 76ba0fc1f5c1f39354bb3173a600f23915f1191f400f7d525d220b4b3c8d958d
+rom_size        = 2097152
+mapping         = lorom
+region          = USA
+# What a mod package's [[target]] game_id must name to apply to this title
+# (snesrecomp/docs/MOD_PACKAGES.md). Stable across revisions on purpose.
+game_id         = looneytunesbball-usa
