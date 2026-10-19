@@ -87,6 +87,10 @@ fi
 
 GEN_ARGS=(--rom "$ROM" --cfg-dir recomp --out-dir src/gen
           --funcs-h recomp/funcs.h --project-root "$ROOT")
+# Coverage captures (recomp/coverage/) seed AOT roots; see snesrecomp/docs/COVERAGE_FEEDBACK.md.
+for f in recomp/coverage/*.json recomp/coverage/*.jsonl; do
+  [ -f "$f" ] && GEN_ARGS+=(--profile-manifest "$f")
+done
 if [ "$CFG_ROOTS" -eq 1 ]; then GEN_ARGS+=(--cfg-roots); fi
 if [ "$VERIFY" -eq 1 ]; then GEN_ARGS+=("${VERIFY_ARGS[@]}"); fi
 
