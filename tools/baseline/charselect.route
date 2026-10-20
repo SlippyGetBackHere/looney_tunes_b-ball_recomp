@@ -1,0 +1,40 @@
+wait 2850
+press start 5
+wait 120
+press start 5
+wait 120
+press start 5
+wait 200
+press right 4
+wait 25
+press right 4
+wait 25
+press right 4
+wait 25
+press right 4
+wait 25
+press right 4
+wait 25
+press right 4
+wait 25
+press right 4
+wait 25
+press right 4
+wait 25
+press right 4
+wait 25
+press right 4
+wait 25
+press right 4
+wait 25
+press right 4
+wait 25
+press right 4
+wait 25
+press right 4
+wait 25
+press right 4
+wait 25
+press right 4
+wait 25
+quit
