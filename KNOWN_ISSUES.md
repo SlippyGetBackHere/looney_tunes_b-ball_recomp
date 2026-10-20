@@ -51,16 +51,32 @@ build:
 
 The fix belongs in the framework.
 
-## Framework patch carried locally
+## Framework patches carried locally
 
-`patches/snesrecomp-hdma-line0.patch` (HDMA one line late in the frame driver)
-must be applied to the `snesrecomp` submodule after a fresh clone or a
-submodule update. See `patches/README.md`.
+Three patches in `patches/` must be applied to the `snesrecomp` submodule
+after a fresh clone or a submodule update: `snesrecomp-hdma-line0.patch` (HDMA
+applied one line late in the frame driver),
+`snesrecomp-generate-coverage-dir.patch` (`generate --coverage-dir`, so
+captures from different builds combine) and
+`snesrecomp-nested-deadline-yield.patch` (an interpreted callee of compiled
+code stops at the frame deadline). See `patches/README.md`.
 
-## Coverage
+## Coverage, and gameplay running interpreted
 
-Compiled code is seeded from one coverage capture (attract mode, menus, part
-of a game). Code no capture has reached runs on the interpreter, which is
-correct but slower. Add captures to
-`recomp/coverage/` (snesrecomp/docs/COVERAGE_FEEDBACK.md) as more of the game
-is played, and run `tools/regen.sh` after each.
+Compiled code is seeded from three coverage captures in `recomp/coverage/`:
+attract mode and the menus, a first tournament match, and a full one-player
+tournament (played with the "Team 1 always wins" testing mod). Add captures
+as more of the game is played (snesrecomp/docs/COVERAGE_FEEDBACK.md), then
+run `tools/regen.sh`.
+
+Much of gameplay's per-frame work still runs on the interpreter, which is
+correct but not native. The main loop at `$80:9D60` calls each subsystem
+with `JSL`, and the analyzer leaves 147 variants interpreter-only
+(`src/gen/program_manifest.json`, disposition `lle_only`), mostly because it
+cannot prove how a callee exits (`unproven_callee_exit`). One unproven
+callee makes every caller interpreter-only. The portrait decompressor's exits
+are declared in `recomp/bank83.cfg` (traced from its code), which compiled
+its callers; the remaining roots (for example `$81:B948` under `$81:A8FC`,
+`$80:AC32`, `$00:B696`, `$82:DF33`, `$81:8019`) each need the same kind of
+evidence before a declaration. Frames take about 2-4 ms, so this is not a
+speed problem today.

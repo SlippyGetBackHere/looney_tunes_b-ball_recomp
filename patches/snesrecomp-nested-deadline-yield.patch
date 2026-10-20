@@ -1,0 +1,29 @@
+diff --git a/runner/src/snes/interp_bridge.c b/runner/src/snes/interp_bridge.c
+index c1e48eb..8bb6c3b 100644
+--- a/runner/src/snes/interp_bridge.c
++++ b/runner/src/snes/interp_bridge.c
+@@ -1666,6 +1666,24 @@ static int _interp_run_core(CpuState *cpu, uint32_t entry_pc24,
+             bridge_apu_flush(cpu);
+             return 1;
+         }
++        /* A nested gap run (compiled code fell back to the interpreter for a
++         * callee it could not compile) honours the frame deadline the same way
++         * the compiled blocks around it do: interp_bridge_lle_master_deadline_
++         * reached() applies the same guards (a scheduler frame owns the run and
++         * this is inside its bounce). Without it a long interpreted callee --
++         * a graphics decompressor reached from compiled code -- ran to
++         * completion past vblank, and NMI landed mid-screen. The deadline
++         * unwind is the existing one: every nested frame passes it outward and
++         * the scheduler frame publishes this PC as the resume point, with the
++         * guest stack as it stands. */
++        if (!yield_pc && interp_bridge_lle_master_deadline_reached(cpu)) {
++            s_lle_next_unwind_is_deadline = 0;
++            lle_unwind_arm(pc_before, s_interp_bridge_depth - 1, 1,
++                           INTERP_RESUME_SITE_DEADLINE, in.sp);
++            sync_interp_to_cpu(&in, cpu);
++            bridge_apu_flush(cpu);
++            return 1;
++        }
+         /* Star Ocean battle $00D9 work-wait specialization. This does not skip
+          * the wait; it executes the LDA $00D9 / BEQ loop with the same master
+          * timing and IRQ/deadline sampling, but avoids the full interpreter bus

@@ -36,12 +36,37 @@ rebuild changes the build digest, so a second capture could never be added.
 The launcher's Generate & rebuild also passes `recomp/coverage` when it
 exists. `tools/regen.sh` uses `--coverage-dir recomp/coverage`.
 
+## snesrecomp-nested-deadline-yield.patch
+
+A nested interpreter run -- compiled code calling a routine the analyzer left
+interpreter-only -- never checked the frame deadline: `_interp_run_core`
+checked it only in the frame driver's own top-level run (`auto_quiescent`).
+A long interpreted callee then ran straight past vblank and NMI landed
+mid-screen. The patch makes a nested run poll the same
+`interp_bridge_lle_master_deadline_reached()` every compiled block polls
+(same guards: a scheduler frame owns the run and this is inside its bounce)
+and, when it fires, arm the existing deadline unwind at that instruction, the
+way the nested-frame hand-off in `bridge_cooperative_yield()` does. Nested
+frames pass it outward and the scheduler frame publishes the PC as the
+resume point.
+
+Needed by the decompressor exit declaration in `recomp/bank83.cfg`. With the
+declaration and without the patch, the character-select black squares came
+back (frames 3537-3538 of the scripted route), with a 48,000-clock overshoot
+at the decompressor. With both: no flashes, the decompressor's deadline
+report lands 8 clocks past the deadline, the court frame is clean, a scripted
+full match ends TEAM 1 WINS with matching final stats, the stats screen
+matches a build without either change, real-time audio has no underflows
+(two of three runs; the third had one host-noise burst), and
+`tests/interp816/bridge_test.c` passes 186/186 (as without the patch).
+
 ## Applying
 
 After a fresh clone or `git submodule update`, from the project root:
 
     git -C snesrecomp apply ../patches/snesrecomp-hdma-line0.patch
     git -C snesrecomp apply ../patches/snesrecomp-generate-coverage-dir.patch
+    git -C snesrecomp apply ../patches/snesrecomp-nested-deadline-yield.patch
 
 Moving to a newer upstream framework: check out the new commit in
 `snesrecomp`, re-apply, and drop any patch upstream has absorbed.
