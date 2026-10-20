@@ -42,6 +42,7 @@ add_executable(LooneyTunesBBallSNESRecomp
     src/host_contract.c
     src/game_rtl.c
     src/gen_stubs.c
+    src/mod_team1_wins.c
 )
 
 # ROM identity. rom_identity.txt is the one place the digests live: the build

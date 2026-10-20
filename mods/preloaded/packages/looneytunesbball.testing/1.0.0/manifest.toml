@@ -1,0 +1,23 @@
+format_version = 1
+id = "looneytunesbball.testing"
+version = "1.0.0"
+name = "Testing aids"
+author = "SlippyGetBackHere"
+description = "Aids for playing through Looney Tunes B-Ball while testing the port. Everything here is off by default; the stock game is unchanged unless you turn a feature on."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "looneytunesbball-usa"
+rom_sha256 = "76ba0fc1f5c1f39354bb3173a600f23915f1191f400f7d525d220b4b3c8d958d"
+
+[[feature]]
+id = "team1_wins"
+name = "Team 1 always wins"
+description = "Team 1 (the left score on the scoreboard) is always kept two points ahead of team 2 once team 2 has scored, so every match ends in a team 1 win, tournament included. Both teams still play and score normally; only team 1's score is raised when it is not ahead."
+group = "Testing"
+default_enabled = false
+
+[[plugin]]
+feature = "team1_wins"
+id = "looneytunesbball.team1_wins"

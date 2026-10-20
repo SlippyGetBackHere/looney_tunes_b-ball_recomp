@@ -24,11 +24,24 @@ one line earlier. Play-checked on the court and character select.
 Checked on this game only. The driver is shared by every title that uses it,
 so check another title before offering it upstream.
 
+## snesrecomp-generate-coverage-dir.patch
+
+Taken unchanged from the Strike Gunner S.T.G port, where it was written.
+`generate --coverage-dir <dir>` passes every capture in a directory to the
+emitter as a historical manifest, each validated on its own, so captures from
+different builds combine. Without it `generate` only takes
+`--profile-manifest`, which refuses to merge captures from different builds
+("cannot merge captures from different ROMs/modules/mappers/builds"). Every
+rebuild changes the build digest, so a second capture could never be added.
+The launcher's Generate & rebuild also passes `recomp/coverage` when it
+exists. `tools/regen.sh` uses `--coverage-dir recomp/coverage`.
+
 ## Applying
 
 After a fresh clone or `git submodule update`, from the project root:
 
     git -C snesrecomp apply ../patches/snesrecomp-hdma-line0.patch
+    git -C snesrecomp apply ../patches/snesrecomp-generate-coverage-dir.patch
 
 Moving to a newer upstream framework: check out the new commit in
 `snesrecomp`, re-apply, and drop any patch upstream has absorbed.
