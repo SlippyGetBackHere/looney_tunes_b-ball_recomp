@@ -35,6 +35,7 @@
 #include "game_rtl.h"
 
 #include "beam_frame_driver.h"
+#include "ltbb_widescreen.h"
 
 void GameRunOneFrame(void)
 {
@@ -43,7 +44,7 @@ void GameRunOneFrame(void)
 
 void GameDrawPpuFrame(void)
 {
-    snes_beam_frame_driver_draw_ppu_frame();
+    LtbbWidescreenDraw();   /* the plain frame draw at 4:3 */
 }
 
 void GameSessionReset(void)

@@ -27,6 +27,8 @@
 
 #include "host_main.h"
 #include "game_rtl.h"
+#include "ltbb_widescreen.h"
+#include "desktop/config.h"
 #include "snesrecomp_rom_identity.h"  /* generated from rom_identity.txt */
 
 #ifndef __ANDROID__
@@ -42,6 +44,27 @@
 #define SNES_GAME_VERSION "dev"
 #endif
 
+/* 16:9 when the launcher's Widescreen option is on (SNESRECOMP_WS_EXTRA
+ * pins the margin for tests); the court's margins are then decided per
+ * frame in src/ltbb_widescreen.c. */
+static void LtbbPrepareFrame(int drawable_w, int drawable_h, int *frame_w, int *frame_h)
+{
+  (void)drawable_w; (void)drawable_h;
+  *frame_w = LtbbWidescreenFrameWidth(g_config.widescreen);
+  *frame_h = 224;
+}
+
+/* Window width at scale 1, for the frame the Widescreen setting will
+ * produce. The host creates the window before the first frame is prepared,
+ * when its frame width is still 256, so sizing from that left a 4:3 window
+ * that letterboxed the 342-px frame. Same 4:3-on-240 rule as the host
+ * default (256 -> 320, 342 -> 428, i.e. 16:9). */
+static int LtbbWindowBaseWidth(int frame_w)
+{
+  (void)frame_w;
+  return (LtbbWidescreenFrameWidth(g_config.widescreen) * 5 + 2) / 4;
+}
+
 static const SnesDesktopHostGame kGameHost = {
     .display_name        = "Looney Tunes B-Ball",
     .window_title        = "Looney Tunes B-Ball",
@@ -52,6 +75,10 @@ static const SnesDesktopHostGame kGameHost = {
     .game_id             = SNESRECOMP_ROM_GAME_ID,
     .build_version       = SNES_GAME_VERSION,
     .game_info           = &kGameInfo,
+    .widescreen_supported = 1,
+    .native_widescreen   = 1,
+    .prepare_frame       = LtbbPrepareFrame,
+    .window_base_width   = LtbbWindowBaseWidth,
     .num_players         = 2,
     /* Battery-backed SRAM shows the launcher's SAVES panel. Leave NULL for a
      * title without one. The path is exe-relative. */
