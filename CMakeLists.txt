@@ -44,6 +44,7 @@ add_executable(LooneyTunesBBallSNESRecomp
     src/gen_stubs.c
     src/mod_team1_wins.c
     src/ltbb_widescreen.c
+    src/ltbb_oam_widen.c
 )
 
 # ROM identity. rom_identity.txt is the one place the digests live: the build

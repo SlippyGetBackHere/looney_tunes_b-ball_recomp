@@ -1,7 +1,7 @@
 # Widescreen and Adaptive View
 
-Work in progress. The court widens to 16:9 with Adaptive View margins
-(below); sprites are not widened yet. This file records which invariants of
+Work in progress. The court widens to 16:9 with Adaptive View margins and
+sprites drawn in them (below). This file records which invariants of
 `snesrecomp/docs/WIDESCREEN_PATTERNS.md` are verified, and how, in the order
 that document prescribes.
 
@@ -116,10 +116,48 @@ black side (the first attempt flipped at every boundary); no green; black
 only at the left end of the court, 17 px where the camera stops short of the
 buildings' first tile. The 4:3 baseline still matches.
 
+## P7/P8 -- sprites in the margins (implemented)
+
+The game builds its OAM shadow (`$1200` low table, `$1400` high table) once a
+frame in the routine at `$80:C3C0`. It culls each object against the native
+screen (object x plus `$0544,X` against 256, x plus `$056C,X` against 0; an
+off-screen object gets bit `$0200` of `$04F4,X` and no sprites), then each
+metasprite piece (`$7E:2500+`; x in [-15, 256) for 16x16 pieces, [-7, 256)
+for 8x8). Its x >= 0 path never sets the 9th X bit, so no limit change alone
+could place a piece past x 256.
+
+`recomp/bank00.cfg` replaces the routine (`hle_func $C3C0`) with
+`HleLtbbOamEmit` (`src/ltbb_oam_widen.c`), which runs the original: it does
+the first instruction (`STZ $1400`) itself, charges the 5 cycles the compiled
+block charges for it, and hands the caller's JSL frame to the compiled body
+declared at `$C3C3` (`func LtbbOamEmitBody`), whose RTL pops it. In
+widescreen court play only, a read-only pass then replays the original's
+decisions, finds where its sprites end, and appends the pieces it culled at
+the native edge that lie in the margins into the free slots after them,
+hiding its previous extras that the game's high-water mark (`$0106`) would
+not. It writes nothing but those OAM-shadow slots and charges no CPU time.
+`SNESRECOMP_WS_OAM=0` turns it off (P14).
+
+Checked:
+
+- 4:3: the baseline matches on all three routes (3701 frames).
+- Simulation: the turbo `match` route at 4:3 and at 16:9, 25 WRAM dumps
+  across the whole match: identical everywhere outside the OAM shadow
+  (`$1200-$141F`).
+- 16:9, the same route with the pass on and off: sprites appear in the
+  margins in 1107 of 2426 sampled frames -- players, and the hoop's rim,
+  backboard and net. The native area is unchanged except in 7 frames, where
+  an object the game culled as a whole has a piece reaching up to 4 px past
+  the native edge, now drawn.
+
+Known limits: margin sprites take the lowest sprite priority and are dropped
+when all 128 slots are in use; the game's off-screen arrow still points at
+players now visible in a margin (it comes from the native-screen flag, which
+is left alone so game logic is unchanged).
+
 ## Not started
 
-P7/P8 (sprite culling and the OAM emitter): players and the ball are still
-culled at the native edge, and the game's off-screen arrow points at players
-who would now be inside the view. Bottom HUD sprites stay native (whether to
-anchor them outward is a choice for later). P15. Tournament screens and
-two-player games are not yet checked in widescreen.
+Hiding the game's off-screen arrow for players visible in a margin. Bottom
+HUD sprites stay native (whether to anchor them outward is a choice for
+later). P15. Tournament screens and two-player games are not yet checked in
+widescreen.

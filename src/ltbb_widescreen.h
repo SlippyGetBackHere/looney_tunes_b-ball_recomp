@@ -11,6 +11,10 @@ int LtbbWidescreenFrameWidth(int widescreen_enabled);
  * the margin columns not drawn. At 4:3 this is the plain frame draw. */
 void LtbbWidescreenDraw(void);
 
+/* True while the court is presented with widescreen margins (the margin is
+ * non-zero, the court gate $0107 is set, SNESRECOMP_WS_COURT is not 0). */
+bool LtbbWidescreenCourtActive(void);
+
 /* Parts of LtbbWidescreenDraw. BeginDraw returns true when the frame needs
  * the per-line observer. */
 bool LtbbWidescreenBeginDraw(void);

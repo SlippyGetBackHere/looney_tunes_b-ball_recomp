@@ -25,9 +25,8 @@
  * select, breaks, the stats screen -- the margins stay black. Nothing reads
  * or writes guest state beyond WRAM bytes and VRAM the game has written.
  *
- * Not widened yet: sprite culling (WIDESCREEN_PATTERNS.md P7/P8), so a player
- * past the native edge still vanishes there, and so does the hoop -- its rim,
- * backboard and net are sprites; only the pole is BG1.
+ * Sprites in the margins -- players, and the hoop's rim, backboard and net
+ * (only its pole is BG1) -- come from src/ltbb_oam_widen.c (P7/P8).
  */
 #include <stdbool.h>
 #include <stdint.h>
@@ -237,6 +236,17 @@ static bool CourtMargins(int extra, int *left, int *right)
   *left = room_left < 0 ? 0 : (room_left < extra ? room_left : extra);
   *right = room_right < 0 ? 0 : (room_right < extra ? room_right : extra);
   return true;
+}
+
+bool LtbbWidescreenCourtActive(void)
+{
+  if (g_ws_extra <= 0)
+    return false;
+  if (s_court_enabled < 0) {
+    const char *e = getenv("SNESRECOMP_WS_COURT");   /* P14 kill switch */
+    s_court_enabled = !(e && e[0] == '0');
+  }
+  return s_court_enabled && g_ram[LTBB_COURT_FLAG] == 1;
 }
 
 bool LtbbWidescreenBeginDraw(void)
