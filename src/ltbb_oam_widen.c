@@ -28,6 +28,14 @@
  * high-water mark ($0106) would not hide. Margin sprites therefore take the
  * lowest sprite priority and are dropped when all 128 slots are in use.
  *
+ * The same pass adapts the game's off-screen arrows. Objects $18/$1A/$1C/$1E
+ * are the arrows for players 0/2/4/6: the game shows one at the native edge
+ * while its player is culled there. In widescreen a player in a margin is
+ * drawn, so its arrow is hidden; a player past the margin too keeps its
+ * arrow, moved out by the margin to the widened edge on the same side. Only
+ * the arrow's own OAM-shadow slots change; the cull flag the game logic
+ * reads ($04F4 bit $0200) is left as the original set it.
+ *
  * SNESRECOMP_WS_OAM=0 turns the pass off (P14).
  */
 #include <stdbool.h>
@@ -52,6 +60,14 @@ typedef struct {
   bool large;
 } LtbbExtra;
 
+/* The OAM-shadow slots one arrow object filled, [first, end). */
+typedef struct {
+  uint16_t first, end;
+} LtbbSpan;
+
+#define LTBB_ARROW_OBJ 0x18        /* arrow for player p is object $18 + p */
+#define LTBB_PLAYERS 4
+
 static int s_enabled = -1;
 static uint16_t s_extra_end;   /* first slot byte past last frame's extras */
 
@@ -61,9 +77,11 @@ static bool Neg(uint16_t v) { return (v & 0x8000) != 0; }
 
 /* Replays the original's emission for the state it just ran on. Returns the
  * byte offset just past its last OAM slot; with `extras` it also collects
- * the margin pieces (up to `cap`). `db5` is $0DB5 as it was on entry. */
+ * the margin pieces (up to `cap`) and the slots each arrow object filled.
+ * `db5` is $0DB5 as it was on entry. */
 static uint16_t Replay(CpuState *cpu, uint8_t db, uint16_t d, uint16_t db5,
-                       int margin, LtbbExtra *extras, int cap, int *count)
+                       int margin, LtbbExtra *extras, int cap, int *count,
+                       LtbbSpan *arrows)
 {
   uint16_t y = db5;
   int k = db5 ? 0x1E : 0x26;
@@ -115,6 +133,9 @@ static uint16_t Replay(CpuState *cpu, uint8_t db, uint16_t d, uint16_t db5,
     if (!pieces)
       continue;
     ptr = (uint16_t)(ptr + 2);
+    const bool arrow = obj >= LTBB_ARROW_OBJ && obj < LTBB_ARROW_OBJ + 2 * LTBB_PLAYERS;
+    if (arrow && arrows)
+      arrows[(obj - LTBB_ARROW_OBJ) >> 1].first = y;
     for (;;) {
       uint16_t attr = Wram7E(cpu, (uint16_t)(0x2500 + ptr));
       bool large = !(attr & 0x2000);
@@ -134,9 +155,11 @@ static uint16_t Replay(CpuState *cpu, uint8_t db, uint16_t d, uint16_t db5,
       bool y_ok = !Neg((uint16_t)(py - edge)) && Neg((uint16_t)(py - 0x00E0));
       if (native_obj && x_native && y_ok) {
         y = (uint16_t)(y + 4);
+        if (arrow && arrows)
+          arrows[(obj - LTBB_ARROW_OBJ) >> 1].end = y;
         if (y >= LTBB_OAM_END)
           return y;
-      } else if (extras && y_ok && *count < cap) {
+      } else if (extras && !arrow && y_ok && *count < cap) {
         int sx = (int16_t)px, size = large ? 16 : 8;
         if (sx + size > -margin && sx < 256 + margin) {
           extras[*count].x = (int16_t)sx;
@@ -152,6 +175,43 @@ static uint16_t Replay(CpuState *cpu, uint8_t db, uint16_t d, uint16_t db5,
     }
   }
   return y;
+}
+
+/* True when player `p` (object 0/2/4/6) is drawn on the widened screen: the
+ * original's object cull ($C454) against 256 + margin and -margin. */
+static bool PlayerInWidened(CpuState *cpu, uint8_t db, uint16_t d, uint16_t p, int margin)
+{
+  if (Rd(cpu, db, (uint16_t)(0x04F4 + p)) & 0x0010)
+    return false;
+  const uint16_t cam_x = Rd(cpu, 0x00, (uint16_t)(d + 0x38));
+  const uint16_t dp40 = Rd(cpu, 0x00, (uint16_t)(d + 0x40));
+  uint16_t t = (uint16_t)(Rd(cpu, db, (uint16_t)(0x024C + p)) + dp40);
+  uint16_t x84 = (uint16_t)(Rd(cpu, db, (uint16_t)(0x015C + p)) - Rd(cpu, db, t) - cam_x);
+  int right = (int16_t)(uint16_t)(x84 + Rd(cpu, db, (uint16_t)(0x0544 + p)));
+  int left = (int16_t)(uint16_t)(x84 + Rd(cpu, db, (uint16_t)(0x056C + p)));
+  return right < 256 + margin && left >= -margin;
+}
+
+/* Writes slot `s`'s x (9 bits, the high-table bit kept with its size bit). */
+static void SetSlotX(CpuState *cpu, uint16_t s, int x)
+{
+  cpu_write8(cpu, 0x7E, (uint16_t)(LTBB_OAM_LOW + s), (uint8_t)(x & 0xFF));
+  const unsigned slot = s >> 2;
+  const uint16_t word = (uint16_t)(LTBB_OAM_HIGH + ((slot >> 2) & ~1u));
+  const unsigned shift = (slot & 3) * 2 + ((slot >> 2) & 1) * 8;
+  uint16_t hw = cpu_read16(cpu, 0x7E, word);
+  hw = (uint16_t)((hw & ~(1u << shift)) | ((x < 0 || x >= 256 ? 1u : 0u) << shift));
+  cpu_write16(cpu, 0x7E, word, hw);
+}
+
+/* Reads slot `s`'s x as the original wrote it (9 bits, signed). */
+static int SlotX(CpuState *cpu, uint16_t s)
+{
+  const unsigned slot = s >> 2;
+  const uint16_t word = (uint16_t)(LTBB_OAM_HIGH + ((slot >> 2) & ~1u));
+  const unsigned shift = (slot & 3) * 2 + ((slot >> 2) & 1) * 8;
+  int x = cpu_read8(cpu, 0x7E, (uint16_t)(LTBB_OAM_LOW + s));
+  return (cpu_read16(cpu, 0x7E, word) >> shift) & 1 ? x - 256 : x;
 }
 
 static void HideSlots(CpuState *cpu, uint16_t from, uint16_t to)
@@ -172,6 +232,24 @@ static void HideOldExtras(CpuState *cpu, uint16_t from)
   s_extra_end = 0;
 }
 
+/* An arrow whose player is drawn in a margin is hidden; otherwise it moves
+ * out by the margin, keeping the side the original put it on. */
+static void AdaptArrows(CpuState *cpu, uint8_t db, uint16_t d, const LtbbSpan *arrows, int margin)
+{
+  for (uint16_t i = 0; i < LTBB_PLAYERS; i++) {
+    const LtbbSpan *a = &arrows[i];
+    if (a->end <= a->first)
+      continue;
+    if (PlayerInWidened(cpu, db, d, (uint16_t)(2 * i), margin)) {
+      HideSlots(cpu, a->first, a->end);
+      continue;
+    }
+    const int shift = SlotX(cpu, a->first) < 128 ? -margin : margin;
+    for (uint16_t s = a->first; s < a->end; s = (uint16_t)(s + 4))
+      SetSlotX(cpu, s, SlotX(cpu, s) + shift);
+  }
+}
+
 static void AfterEmit(CpuState *cpu, uint8_t db, uint16_t d, uint16_t db5)
 {
   if (s_enabled < 0) {
@@ -184,9 +262,11 @@ static void AfterEmit(CpuState *cpu, uint8_t db, uint16_t d, uint16_t db5)
     return;
   }
   LtbbExtra extras[128];
+  LtbbSpan arrows[LTBB_PLAYERS] = {{0, 0}};
   int n = 0;
-  uint16_t y = Replay(cpu, db, d, db5, g_ws_extra, extras, 128, &n);
+  uint16_t y = Replay(cpu, db, d, db5, g_ws_extra, extras, 128, &n, arrows);
   HideOldExtras(cpu, y);
+  AdaptArrows(cpu, db, d, arrows, g_ws_extra);
   for (int i = 0; i < n && y < LTBB_OAM_END; i++, y = (uint16_t)(y + 4)) {
     const LtbbExtra *e = &extras[i];
     cpu_write16(cpu, 0x7E, (uint16_t)(LTBB_OAM_LOW + y),

@@ -1,0 +1,15 @@
+diff --git a/runner/src/snes/ppu.c b/runner/src/snes/ppu.c
+index 25dcfe0..c17fd6f 100644
+--- a/runner/src/snes/ppu.c
++++ b/runner/src/snes/ppu.c
+@@ -1571,7 +1571,9 @@ static void PpuDrawBackground_2bpp(Ppu *ppu, PpuPixelPrioBufs *dstbuf, uint y, b
+     win.edges[5] = 256 + ppu->extraLeftRight;
+     ws_bias[0] = ppu->extraLeftRight;
+     ws_bias[4] = -(int16)ppu->extraLeftRight;
+-  } else {
++  } else if (!PpuApplyLayerAnchorBand(ppu, layer, y, &win, ws_bias)) {
++    // A 2bpp layer can carry a status bar too (PpuSetWidescreenLayer-
++    // AnchorBand); anchor it here the way the 4bpp paths do.
+     PpuApplyMarginGap(ppu, layer, &win, ws_bias);
+   }
+   y += ppu->vScroll[layer];

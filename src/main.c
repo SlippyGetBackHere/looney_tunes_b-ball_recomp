@@ -29,6 +29,7 @@
 #include "game_rtl.h"
 #include "ltbb_widescreen.h"
 #include "desktop/config.h"
+#include "desktop/display_aspect.h"
 #include "snesrecomp_rom_identity.h"  /* generated from rom_identity.txt */
 
 #ifndef __ANDROID__
@@ -44,25 +45,48 @@
 #define SNES_GAME_VERSION "dev"
 #endif
 
-/* 16:9 when the launcher's Widescreen option is on (SNESRECOMP_WS_EXTRA
- * pins the margin for tests); the court's margins are then decided per
- * frame in src/ltbb_widescreen.c. */
+/* The launcher's "Aspect ratio" row: 16:9 widescreen (the default) or the
+ * original 4:3. The host stores the row's index as [Graphics] DisplayAspect
+ * and names indices after its own SNES pixel aspects, so in config.ini
+ * "DisplayAspect = 4:3" (index 0) means widescreen and "8:7" (index 1) means
+ * the original picture. The Widescreen key mirrors the choice for reading.
+ * The picture always keeps the authentic 4:3 CRT pixel aspect
+ * (LtbbComputeViewport). SNESRECOMP_WS_EXTRA pins the margin for tests. */
+static const char *const kLtbbAspectLabels[] = { "16:9 widescreen", "4:3" };
+
+static bool LtbbWidescreenWanted(void)
+{
+  return g_config.display_aspect == 0;
+}
+
+/* The court's margins are decided per frame in src/ltbb_widescreen.c. */
 static void LtbbPrepareFrame(int drawable_w, int drawable_h, int *frame_w, int *frame_h)
 {
   (void)drawable_w; (void)drawable_h;
+  g_config.widescreen = LtbbWidescreenWanted();
   *frame_w = LtbbWidescreenFrameWidth(g_config.widescreen);
   *frame_h = 224;
 }
 
-/* Window width at scale 1, for the frame the Widescreen setting will
- * produce. The host creates the window before the first frame is prepared,
- * when its frame width is still 256, so sizing from that left a 4:3 window
- * that letterboxed the 342-px frame. Same 4:3-on-240 rule as the host
- * default (256 -> 320, 342 -> 428, i.e. 16:9). */
+/* Window width at scale 1, for the frame the aspect choice will produce. The
+ * host creates the window before the first frame is prepared, when its frame
+ * width is still 256, so sizing from that left a 4:3 window that letterboxed
+ * the 342-px frame. Same 4:3-on-240 rule as the host default (256 -> 320,
+ * 342 -> 428, i.e. 16:9). */
 static int LtbbWindowBaseWidth(int frame_w)
 {
   (void)frame_w;
-  return (LtbbWidescreenFrameWidth(g_config.widescreen) * 5 + 2) / 4;
+  return (LtbbWidescreenFrameWidth(LtbbWidescreenWanted()) * 5 + 2) / 4;
+}
+
+/* The authentic 4:3 CRT pixel aspect for both choices; without this the host
+ * would read index 1 of the aspect row as its 8:7 square-pixel choice. */
+static void LtbbComputeViewport(int frame_w, int frame_h, int drawable_w,
+                                int drawable_h, SnesDisplayViewport *viewport)
+{
+  SnesDisplayAspect_ComputeViewport(frame_w, frame_h, drawable_w, drawable_h,
+                                    kSnesDisplayAspect_Crt4x3,
+                                    g_config.ignore_aspect_ratio, false, viewport);
 }
 
 static const SnesDesktopHostGame kGameHost = {
@@ -79,6 +103,12 @@ static const SnesDesktopHostGame kGameHost = {
     .native_widescreen   = 1,
     .prepare_frame       = LtbbPrepareFrame,
     .window_base_width   = LtbbWindowBaseWidth,
+    .compute_viewport    = LtbbComputeViewport,
+    .display_aspect_supported = 1,
+    .aspect_labels       = kLtbbAspectLabels,
+    .num_aspect_labels   = 2,
+    .aspect_setting_label = "Aspect ratio",
+    .aspect_setting_help = "16:9 widens the court; menus and other screens keep their 4:3 picture. 4:3 is the original picture.",
     .num_players         = 2,
     /* Battery-backed SRAM shows the launcher's SAVES panel. Leave NULL for a
      * title without one. The path is exe-relative. */

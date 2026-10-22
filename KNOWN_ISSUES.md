@@ -53,13 +53,15 @@ The fix belongs in the framework.
 
 ## Framework patches carried locally
 
-Three patches in `patches/` must be applied to the `snesrecomp` submodule
+Four patches in `patches/` must be applied to the `snesrecomp` submodule
 after a fresh clone or a submodule update: `snesrecomp-hdma-line0.patch` (HDMA
 applied one line late in the frame driver),
 `snesrecomp-generate-coverage-dir.patch` (`generate --coverage-dir`, so
-captures from different builds combine) and
+captures from different builds combine),
 `snesrecomp-nested-deadline-yield.patch` (an interpreted callee of compiled
-code stops at the frame deadline). See `patches/README.md`.
+code stops at the frame deadline) and `snesrecomp-anchor-band-2bpp.patch`
+(the widescreen anchor band also moves 2bpp layers, for the HUD text). See
+`patches/README.md`.
 
 ## Coverage, and gameplay running interpreted
 

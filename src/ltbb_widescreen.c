@@ -65,6 +65,8 @@ static int s_court_enabled = -1;
 static bool s_shadow_active;
 /* This frame's drawn margins, for LtbbWidescreenEndDraw. */
 static int s_left, s_right;
+/* True when the renderer composed this frame's bare sides itself. */
+static bool s_hud_full;
 /* This frame's BG2 world x per screen row, for the per-line observer. */
 static int32_t s_bg2_row_world[224];
 
@@ -238,6 +240,42 @@ static bool CourtMargins(int extra, int *left, int *right)
   return true;
 }
 
+/* The bottom HUD -- each team's two portraits (sprites, the first 16 OAM
+ * slots on the court, which the game emits first and caches) and its money
+ * and power-name text (BG3, the bottom lines) -- moves out to the frame
+ * edges in widescreen court play: the left team's group left, the right
+ * team's right. It moves by the full margin, not the live one, so it stays
+ * put when the court ends and a side goes black (HUD-always-visible: the
+ * renderer blacks the bare side itself and keeps the HUD's pixels there).
+ * BG3 above the HUD (centred captions such as "TEAM 1 WINS!") keeps its
+ * native 256 columns, as BG3 does in every other scene. BG3 is 2bpp here;
+ * patches/snesrecomp-anchor-band-2bpp.patch makes the anchor band apply to
+ * it. */
+#define LTBB_HUD_TOP 176            /* first screen line of the bottom HUD */
+#define LTBB_HUD_OAM_SLOTS 16       /* the four 32x32 portraits */
+#define LTBB_HUD_LEFT_END 120       /* x < this: left team's group */
+#define LTBB_HUD_RIGHT_START 136    /* x >= this: right team's group */
+
+static void HudPlacement(bool court)
+{
+  if (court) {
+    PpuSetWidescreenLayerClamp(g_ppu, 0);
+    PpuSetWidescreenLayerClampBand(g_ppu, 2, 0, LTBB_HUD_TOP);
+    PpuSetWidescreenLayerAnchorBand(g_ppu, 2, LTBB_HUD_TOP, 224,
+                                    LTBB_HUD_LEFT_END, LTBB_HUD_RIGHT_START);
+    PpuSetWsHudOamBand(g_ppu, 224, LTBB_HUD_LEFT_END, LTBB_HUD_RIGHT_START);
+    PpuSetWsHudOamShiftRange(g_ppu, 0, LTBB_HUD_OAM_SLOTS);
+    PpuSetWidescreenHudAlwaysVisible(g_ppu, true);
+  } else {
+    PpuSetWidescreenLayerClamp(g_ppu, LTBB_LAYER_BG3_MASK);
+    PpuSetWidescreenLayerClampBand(g_ppu, 2, 0, 0);
+    PpuSetWidescreenLayerAnchorBand(g_ppu, 2, 0, 0, 0, 0);
+    PpuSetWsHudOamBand(g_ppu, 0, 0, 0);
+    PpuSetWsHudOamShiftRange(g_ppu, 0, 0);
+    PpuSetWidescreenHudAlwaysVisible(g_ppu, false);
+  }
+}
+
 bool LtbbWidescreenCourtActive(void)
 {
   if (g_ws_extra <= 0)
@@ -268,8 +306,8 @@ bool LtbbWidescreenBeginDraw(void)
     observed = CourtMargins(extra, &left, &right);
   if (!observed)
     ShadowOff();
-  /* The HUD text (BG3) keeps its native 256 columns in every scene. */
-  PpuSetWidescreenLayerClamp(g_ppu, LTBB_LAYER_BG3_MASK);
+  HudPlacement(observed);
+  s_hud_full = observed;
   PpuSetExtraSideSpace(g_ppu, left, right, 0);
   s_left = left;
   s_right = right;
@@ -288,11 +326,13 @@ void LtbbWidescreenDraw(void)
 /* The renderer leaves margin columns it was told not to draw untouched, so
  * they still hold whatever an earlier frame drew there (the framework leaves
  * pillarboxing to the caller). Clear them, so a bare side is black rather
- * than a stale copy of earlier court. */
+ * than a stale copy of earlier court. On the court the renderer composes the
+ * full width itself (HudPlacement), black where the court has ended except
+ * for the HUD, so there is nothing to clear. */
 void LtbbWidescreenEndDraw(void)
 {
   const int extra = g_ws_extra;
-  if (extra <= 0 || !g_ppu->renderBuffer)
+  if (extra <= 0 || !g_ppu->renderBuffer || s_hud_full)
     return;
   const int width = 256 + 2 * extra;
   const int lpad = extra - s_left, rpad = extra - s_right;

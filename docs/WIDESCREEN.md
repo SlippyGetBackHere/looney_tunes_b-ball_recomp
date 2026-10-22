@@ -1,11 +1,19 @@
 # Widescreen and Adaptive View
 
-Work in progress. The court widens to 16:9 with Adaptive View margins and
-sprites drawn in them (below). This file records which invariants of
+The court widens to 16:9 with Adaptive View margins, sprites drawn in them,
+the bottom HUD anchored to the screen edges and the off-screen arrows moved
+to the widened edges (below). This file records which invariants of
 `snesrecomp/docs/WIDESCREEN_PATTERNS.md` are verified, and how, in the order
 that document prescribes.
 
-Turn it on with the launcher's Widescreen option (`[Graphics] Widescreen = 1`).
+Widescreen is on by default. The launcher's "Aspect ratio" row switches
+between "16:9 widescreen" and the original "4:3". The framework's launcher has
+no Widescreen row for SNES ports (`docs/UPSTREAM_ISSUES.md`, item 7), so the
+port puts the choice on the aspect row (`src/main.c`). The host stores that
+row as `[Graphics] DisplayAspect` under its own names: `4:3` (index 0) means
+widescreen and `8:7` (index 1) means the original picture. Both choices keep
+the 4:3 CRT pixel aspect. `[Graphics] Widescreen` mirrors the choice and is
+rewritten from it every frame.
 `SNESRECOMP_WS_EXTRA=<px>` pins the per-side margin for tests (0 forces 4:3);
 `SNESRECOMP_WS_COURT=0` keeps every scene pillarboxed (P14 kill switch).
 
@@ -101,8 +109,10 @@ options, credits, two-player games.
 - The margins stop at the court's authored ends, found each frame from the
   strip row under the top screen line; past them the side is black
   (Adaptive View).
-- BG3 (HUD text) is clamped to its native 256 columns.
-- The renderer leaves undrawn margin columns as they were, so they are
+- BG3 (HUD text) is clamped to its native 256 columns above the bottom HUD
+  (line 176); the bottom HUD is anchored to the edges (below).
+- The renderer blacks the bare side itself on the court (HUD-always-visible,
+  below). Elsewhere it leaves undrawn margin columns as they were, so they are
   cleared after the draw.
 - The window is sized for the widescreen frame (`window_base_width` in
   `src/main.c`): the host creates it before the first frame is prepared, so
@@ -150,14 +160,85 @@ Checked:
   an object the game culled as a whole has a piece reaching up to 4 px past
   the native edge, now drawn.
 
-Known limits: margin sprites take the lowest sprite priority and are dropped
-when all 128 slots are in use; the game's off-screen arrow still points at
-players now visible in a margin (it comes from the native-screen flag, which
-is left alone so game logic is unchanged).
+Known limit: margin sprites take the lowest sprite priority and are dropped
+when all 128 slots are in use.
+
+## Bottom HUD anchored to the edges (implemented)
+
+The bottom HUD is the four portraits and BG3 text between them: each
+team's money (between its two portraits) and power-up name. The portraits
+are OAM slots 0-15: the emitter re-emits them first whenever `$0DB5` is 0 and
+then stores the slot after them in `$0DB5`, which ended every emission of a
+full match at `$40` (16 slots).
+
+In widescreen court play, `HudPlacement()` in `src/ltbb_widescreen.c` moves
+both outward: content left of x 120 moves left by the margin and content from
+x 136 moves right by it. That applies to BG3 from line 176 down
+(`PpuSetWidescreenLayerAnchorBand`) and to OAM slots 0-15
+(`PpuSetWsHudOamBand` / `PpuSetWsHudOamShiftRange`). Above line 176 BG3
+stays clamped to the native columns. Off the court nothing moves.
+Presentation only: the PPU places the layers; no game memory is touched.
+
+Two things were needed beyond setting the bands:
+
+- BG3 is 2bpp in this mode, and the framework applied the anchor band only
+  to 4bpp layers, so the text stayed put while its portraits moved and the
+  money ended up against a portrait.
+  `patches/snesrecomp-anchor-band-2bpp.patch` fixes that.
+- The shift followed the live margin, so at a court end, where a side goes
+  black, the portraits and text slid inward with the court.
+  `PpuSetWidescreenHudAlwaysVisible` makes them use the full margin. The
+  renderer then composes the full width and blacks everything past the court
+  end except the HUD's pixels (and sprites), so the HUD stays at the frame
+  edges.
+
+Checked on 16:9 frames of the whole `match` route: above line 176 every
+frame is identical to the build before these two changes. Below it, the
+portraits sit at the frame edges, also at the court's left end (17 px of
+black), with each team's money between its two portraits as at 4:3. The 4:3
+baseline matches on all three routes.
+
+## Off-screen arrows (implemented)
+
+When a player is culled at the native screen edge, the game shows an arrow
+at that edge in the player's palette. The arrows are objects `$18`, `$1A`,
+`$1C` and `$1E`, one for each of players 0, 2, 4 and 6 (found from WRAM and
+OAM dumps of the `match` route). They are camera-relative in y, use tiles
+`$A0-$B7`, and sit at x 16-20 on the left and 236-245 on the right.
+
+In widescreen court play, the same post-pass as the margin sprites
+(`AdaptArrows` in `src/ltbb_oam_widen.c`) handles them:
+
+- A player drawn on the widened screen (the original's object cull against
+  256 + margin and -margin) gets its arrow hidden.
+- A player past the margin too keeps its arrow, moved out by the margin on
+  the side the game put it.
+
+Only the arrow's own OAM-shadow slots change. The flag the game logic reads
+(`$04F4` bit `$0200`, used by AI and sound routines in banks `$80`-`$82`) is
+left as the original set it.
+
+Checked:
+
+- 4:3: the baseline matches on all three routes (3701 frames) after the HUD
+  and arrow changes.
+- Simulation: 51 WRAM dumps of court play, 4:3 against 16:9: identical
+  outside the OAM shadow.
+- 16:9: in dumps where the game shows an arrow, arrows for players visible
+  in a margin are gone. The others sit at the widened edges (x 275 on the
+  right, around -29 on the left, with a 43-px margin) and point the way
+  their players went.
+
+## Open
+
+A report from play: part of Daffy's sprite appeared separated from him. Not
+reproduced yet. On the `match` route, comparing every sampled 16:9 frame with
+4:3 found no difference above the HUD other than arrows, and the sprites
+seen over the scoreboard (a player who has jumped past the top of the
+screen) are the same at 4:3. Ruled out: player pieces in the HUD's OAM slots
+(`$0DB5` was always `$40`) and the per-line sprite limit (`NoSpriteLimits`).
 
 ## Not started
 
-Hiding the game's off-screen arrow for players visible in a margin. Bottom
-HUD sprites stay native (whether to anchor them outward is a choice for
-later). P15. Tournament screens and two-player games are not yet checked in
+P15. Tournament screens and two-player games are not yet checked in
 widescreen.

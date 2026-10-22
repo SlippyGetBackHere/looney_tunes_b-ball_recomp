@@ -60,6 +60,25 @@ matches a build without either change, real-time audio has no underflows
 (two of three runs; the third had one host-noise burst), and
 `tests/interp816/bridge_test.c` passes 186/186 (as without the patch).
 
+## snesrecomp-anchor-band-2bpp.patch
+
+`PpuSetWidescreenLayerAnchorBand()` moves a status bar's left and right parts
+out to the widened edges, but only the 4bpp background draws applied it; the
+2bpp draw (`PpuDrawBackground_2bpp`) ignored it. This game's bottom HUD text
+-- each team's money and power-up name -- is on BG3, which is 2bpp in its
+mode, so the portraits (sprites) moved out to the edges and the text beside
+them did not: at 16:9 the money sat against the inner portrait instead of
+between the two.
+
+The patch applies the anchor band in the 2bpp draw where the 4bpp draws do,
+through the same `PpuApplyLayerAnchorBand()` helper, so it inherits the
+helper's rules: only on the band's lines, only when the layer has no window
+there, and by the full margin when HUD-always-visible is set. A title that
+sets no anchor band on a 2bpp layer draws exactly as before. Checked here:
+the 4:3 baseline matches on all three routes, and on 16:9 frames of the
+`match` route nothing above the HUD (line 176) changes, while the money and
+power-up text move with their portraits.
+
 ## Applying
 
 After a fresh clone or `git submodule update`, from the project root:
@@ -67,6 +86,7 @@ After a fresh clone or `git submodule update`, from the project root:
     git -C snesrecomp apply ../patches/snesrecomp-hdma-line0.patch
     git -C snesrecomp apply ../patches/snesrecomp-generate-coverage-dir.patch
     git -C snesrecomp apply ../patches/snesrecomp-nested-deadline-yield.patch
+    git -C snesrecomp apply ../patches/snesrecomp-anchor-band-2bpp.patch
 
 Moving to a newer upstream framework: check out the new commit in
 `snesrecomp`, re-apply, and drop any patch upstream has absorbed.
