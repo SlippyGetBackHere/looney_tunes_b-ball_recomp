@@ -1,5 +1,7 @@
 # Looney Tunes B-Ball Recomp
 
+![Looney Tunes B-Ball in 16:9 widescreen](docs/widescreen-court.png)
+
 A native recompilation of **Looney Tunes B-Ball** (USA), built on
 [snesrecomp](https://github.com/RetroPortingToolKit/snesrecomp).
 
@@ -30,9 +32,25 @@ off-screen arrows point from the widened edges, hidden for players you can
 already see. Menus, character select, breaks and the stats screen keep their
 4:3 picture.
 
+| 4:3 (the original) | 16:9 widescreen |
+|:---:|:---:|
+| ![The same moment in 4:3](docs/same-moment-4x3.png) | ![The same moment in 16:9](docs/widescreen-court.png) |
+| Daffy is off the screen; the arrow on the right points to him | The court carries on, and Daffy is in view |
+
 It only changes what is drawn: the game plays exactly the same in both modes
 (identical game memory throughout a scripted match). How it works and how it
 was checked: [`docs/WIDESCREEN.md`](docs/WIDESCREEN.md).
+
+## Screenshots
+
+| | |
+|:---:|:---:|
+| ![Title screen](docs/title-screen.png) | ![Main menu](docs/main-menu.png) |
+| Title screen | Main menu |
+| ![Character select](docs/character-select.png) | ![Daffy going up for a dunk](docs/widescreen-hoop.png) |
+| Character select | Daffy going up for a dunk (widescreen) |
+| ![A Cream Pie power-up](docs/widescreen-power-up.png) | ![The end of the court](docs/widescreen-court-end.png) |
+| A Cream Pie power-up in action (widescreen) | At the court's end, the side past the game's artwork is black |
 
 ## Status
 
