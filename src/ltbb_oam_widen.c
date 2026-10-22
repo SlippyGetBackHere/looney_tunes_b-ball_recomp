@@ -41,6 +41,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "common_rtl.h"
 #include "cpu_state.h"
@@ -284,6 +285,47 @@ static void AfterEmit(CpuState *cpu, uint8_t db, uint16_t d, uint16_t db5)
 }
 
 /* hle_func $C3C0 (recomp/bank00.cfg). */
+/* The bottom HUD's portraits are the first slots the emitter writes, and
+ * $0DB5 holds the slot byte just past them. That is 16 slots only for some
+ * expressions: a portrait that animates to one piece fewer leaves $0DB5 at
+ * $3C, and the next slot holds a game sprite. The HUD anchor must shift only
+ * the portrait slots, and only those of the sprite table the PPU is drawing,
+ * which is the one the game copied at the last vblank -- one emission behind
+ * the latest. So each emission records its portrait count and slots, and the
+ * draw picks the record whose slots the PPU's OAM holds. */
+#define LTBB_HUD_MAX_SLOTS 16
+
+typedef struct {
+  uint8_t n;
+  uint16_t words[2 * LTBB_HUD_MAX_SLOTS];
+} LtbbHudRecord;
+
+static LtbbHudRecord s_hud[2];
+static int s_hud_last;
+
+static void RecordHud(CpuState *cpu, uint8_t db)
+{
+  int n = cpu_read16(cpu, db, 0x0DB5) / 4;
+  LtbbHudRecord *h = &s_hud[s_hud_last ^= 1];
+  h->n = (uint8_t)(n > LTBB_HUD_MAX_SLOTS ? LTBB_HUD_MAX_SLOTS : n);
+  for (int i = 0; i < 2 * h->n; i++)
+    h->words[i] = cpu_read16(cpu, 0x7E, (uint16_t)(LTBB_OAM_LOW + 2 * i));
+}
+
+int LtbbHudPortraitSlots(const uint16_t *oam)
+{
+  const LtbbHudRecord *a = &s_hud[0], *b = &s_hud[1];
+  if (a->n < b->n) {
+    const LtbbHudRecord *t = a; a = b; b = t;
+  }
+  /* Longer first: a shorter record's slots are a prefix of a longer one's. */
+  if (a->n && !memcmp(oam, a->words, (size_t)a->n * 4))
+    return a->n;
+  if (b->n && !memcmp(oam, b->words, (size_t)b->n * 4))
+    return b->n;
+  return b->n;
+}
+
 RecompReturn HleLtbbOamEmit(CpuState *cpu)
 {
   const uint8_t db = cpu->DB;
@@ -299,7 +341,9 @@ RecompReturn HleLtbbOamEmit(CpuState *cpu)
 
   /* The caller's JSL frame is already on the stack; the body's RTL pops it. */
   RecompReturn r = cpu_dispatch_call_pc_pushed(cpu, bank | 0xC3C3, bank | 0xC3C0, 3, NULL);
-  if (r == RECOMP_RETURN_NORMAL)
+  if (r == RECOMP_RETURN_NORMAL) {
+    RecordHud(cpu, db);
     AfterEmit(cpu, db, d, db5);
+  }
   return r;
 }

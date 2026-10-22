@@ -2,6 +2,7 @@
 #define LTBB_WIDESCREEN_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 /* Frame width for the host's prepare_frame: 256, or 256 + 2 * margin. */
 int LtbbWidescreenFrameWidth(int widescreen_enabled);
@@ -19,5 +20,9 @@ bool LtbbWidescreenCourtActive(void);
  * the per-line observer. */
 bool LtbbWidescreenBeginDraw(void);
 void LtbbWidescreenEndDraw(void);
+
+/* How many leading OAM slots of `oam` (the PPU's, 2 words per slot) are the
+ * bottom HUD's portraits (src/ltbb_oam_widen.c). */
+int LtbbHudPortraitSlots(const uint16_t *oam);
 
 #endif /* LTBB_WIDESCREEN_H */

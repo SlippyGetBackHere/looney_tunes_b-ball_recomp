@@ -240,8 +240,8 @@ static bool CourtMargins(int extra, int *left, int *right)
   return true;
 }
 
-/* The bottom HUD -- each team's two portraits (sprites, the first 16 OAM
- * slots on the court, which the game emits first and caches) and its money
+/* The bottom HUD -- each team's two portraits (sprites, the first 15 or 16
+ * OAM slots on the court, which the game emits first and caches) and its money
  * and power-name text (BG3, the bottom lines) -- moves out to the frame
  * edges in widescreen court play: the left team's group left, the right
  * team's right. It moves by the full margin, not the live one, so it stays
@@ -252,7 +252,6 @@ static bool CourtMargins(int extra, int *left, int *right)
  * patches/snesrecomp-anchor-band-2bpp.patch makes the anchor band apply to
  * it. */
 #define LTBB_HUD_TOP 176            /* first screen line of the bottom HUD */
-#define LTBB_HUD_OAM_SLOTS 16       /* the four 32x32 portraits */
 #define LTBB_HUD_LEFT_END 120       /* x < this: left team's group */
 #define LTBB_HUD_RIGHT_START 136    /* x >= this: right team's group */
 
@@ -264,7 +263,8 @@ static void HudPlacement(bool court)
     PpuSetWidescreenLayerAnchorBand(g_ppu, 2, LTBB_HUD_TOP, 224,
                                     LTBB_HUD_LEFT_END, LTBB_HUD_RIGHT_START);
     PpuSetWsHudOamBand(g_ppu, 224, LTBB_HUD_LEFT_END, LTBB_HUD_RIGHT_START);
-    PpuSetWsHudOamShiftRange(g_ppu, 0, LTBB_HUD_OAM_SLOTS);
+    /* Only the portrait slots: their count varies with the expressions. */
+    PpuSetWsHudOamShiftRange(g_ppu, 0, (uint8_t)LtbbHudPortraitSlots(g_ppu->oam));
     PpuSetWidescreenHudAlwaysVisible(g_ppu, true);
   } else {
     PpuSetWidescreenLayerClamp(g_ppu, LTBB_LAYER_BG3_MASK);

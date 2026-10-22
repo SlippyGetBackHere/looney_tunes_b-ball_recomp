@@ -167,19 +167,21 @@ when all 128 slots are in use.
 
 The bottom HUD is the four portraits and BG3 text between them: each
 team's money (between its two portraits) and power-up name. The portraits
-are OAM slots 0-15: the emitter re-emits them first whenever `$0DB5` is 0 and
-then stores the slot after them in `$0DB5`, which ended every emission of a
-full match at `$40` (16 slots).
+are the first OAM slots: the emitter re-emits them first whenever `$0DB5` is
+0 and then stores the slot byte after them in `$0DB5`. That is usually `$40`
+(16 slots), but some expressions draw a portrait with one piece fewer: then
+`$0DB5` is `$3C`, and slot 15 holds whatever the game draws next -- a
+player's piece, the ball, a jewel, the shot clock.
 
 In widescreen court play, `HudPlacement()` in `src/ltbb_widescreen.c` moves
 both outward: content left of x 120 moves left by the margin and content from
 x 136 moves right by it. That applies to BG3 from line 176 down
-(`PpuSetWidescreenLayerAnchorBand`) and to OAM slots 0-15
+(`PpuSetWidescreenLayerAnchorBand`) and to the portrait slots
 (`PpuSetWsHudOamBand` / `PpuSetWsHudOamShiftRange`). Above line 176 BG3
 stays clamped to the native columns. Off the court nothing moves.
 Presentation only: the PPU places the layers; no game memory is touched.
 
-Two things were needed beyond setting the bands:
+Three things were needed beyond setting the bands:
 
 - BG3 is 2bpp in this mode, and the framework applied the anchor band only
   to 4bpp layers, so the text stayed put while its portraits moved and the
@@ -191,9 +193,21 @@ Two things were needed beyond setting the bands:
   renderer then composes the full width and blacks everything past the court
   end except the HUD's pixels (and sprites), so the HUD stays at the frame
   edges.
+- The OAM shift must cover exactly the portrait slots of the sprite table
+  being drawn. A fixed 16 moved slot 15 by the margin whenever a portrait
+  used 15 slots -- reported from play as pieces of players, the ball,
+  jewels and the shot clock shifted 43 px from where they belong, seen
+  first as part of Daffy separated from him. The PPU draws the table the
+  game copied at the last vblank, one emission behind the latest, so
+  `HleLtbbOamEmit` records each emission's portrait count and slots, and
+  `LtbbHudPortraitSlots` picks the record whose slots the PPU's OAM holds.
 
-Checked on 16:9 frames of the whole `match` route: above line 176 every
-frame is identical to the build before these two changes. Below it, the
+Checked on the attract demo in real time, every third frame over 2,000
+frames (it reaches 15-slot portraits): against 4:3, the picture above line
+176 differs only by arrows at the edges; with the shift fixed at 16 slots,
+86 of those frames had displaced pieces in the middle of the court. Checked
+on 16:9 frames of the whole `match` route: above line 176 every frame is
+identical to the build before the first two changes. Below it, the
 portraits sit at the frame edges, also at the court's left end (17 px of
 black), with each team's money between its two portraits as at 4:3. The 4:3
 baseline matches on all three routes.
@@ -228,15 +242,6 @@ Checked:
   in a margin are gone. The others sit at the widened edges (x 275 on the
   right, around -29 on the left, with a 43-px margin) and point the way
   their players went.
-
-## Open
-
-A report from play: part of Daffy's sprite appeared separated from him. Not
-reproduced yet. On the `match` route, comparing every sampled 16:9 frame with
-4:3 found no difference above the HUD other than arrows, and the sprites
-seen over the scoreboard (a player who has jumped past the top of the
-screen) are the same at 4:3. Ruled out: player pieces in the HUD's OAM slots
-(`$0DB5` was always `$40`) and the per-line sprite limit (`NoSpriteLimits`).
 
 ## Not started
 

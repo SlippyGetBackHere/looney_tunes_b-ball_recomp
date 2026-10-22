@@ -120,9 +120,6 @@ See `KNOWN_ISSUES.md`. In short:
   Clicking inside the picture does not.
 - Sylvester's character-select screen has a teal line at the bottom. The
   original game does this too.
-- In widescreen, part of Daffy's sprite was once seen separated from him
-  while the game was paused during an inbound. Not reproduced yet; a save
-  state of it would help.
 
 ## Reporting a problem
 
