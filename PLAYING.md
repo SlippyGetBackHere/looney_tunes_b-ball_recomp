@@ -136,7 +136,8 @@ Please include:
    ROM file is on your PC; edit that path out if you would rather not share
    it.
 4. A screenshot or short video for anything visual, a recording for sound.
-5. For setup problems, the last lines of the console window.
+5. For setup problems, the last lines of the console window, and
+   `build\snesrecomp_rebuild.log`.
 
 A save state from just before the problem (the files in `build\saves`) helps
 most of all, but save states hold the console's video and sound memory,

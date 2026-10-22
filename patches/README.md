@@ -11,6 +11,15 @@ upstream yet (`docs/UPSTREAM_ISSUES.md`).
 The patch files here are the same four commits, kept so the fixes can be
 re-applied to a newer upstream (below).
 
+After them the branch carries five setup-pack fixes taken unchanged from the
+Strike Gunner S.T.G port's fork branch (`local/mode2-renderer-fix`), found
+while shipping that port's releases: the native analyzer is shipped in the
+pack (a player has no Cargo to build it), the stage step's zip fallback and
+`--exclude-dir`, `funcs.h` is synced before generating in a fresh tree, and
+the Windows rebuild helper sets the toolchain environment itself and keeps
+the build's exit code. They have no patch files here; cherry-pick them from
+that branch when moving to a newer upstream.
+
 ## snesrecomp-hdma-line0.patch
 
 `snes_beam_frame_driver_draw_ppu_frame_observed()` primed line 1 with each
