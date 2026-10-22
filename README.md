@@ -3,29 +3,71 @@
 A native recompilation of **Looney Tunes B-Ball** (USA), built on
 [snesrecomp](https://github.com/RetroPortingToolKit/snesrecomp).
 
-_Add a short description here._
-
-
+Two-on-two street basketball from 1995 with Bugs, Daffy, Taz, Yosemite Sam
+and the rest, recompiled from the 65816 to native code: the game's own logic
+runs as compiled C against an emulated SNES video chip, sound chip and DMA,
+with the framework's interpreter as a fallback for code no analysis has
+reached. The court can be played in 16:9 widescreen.
 
 > **You must legally own a copy of the game.** No ROM data is distributed with
 > this project, in the repository or in any release. The recompiled C is
 > generated locally from your own copy and is never committed.
 
+**Just want to play?** Download the latest release from the
+[Releases page](https://github.com/SlippyGetBackHere/Looney-Tunes-B-Ball-Recomp/releases)
+and see [`PLAYING.md`](PLAYING.md): setup, controls, options and how to report
+a problem. The rest of this file is for building and developing the port.
+
+## Widescreen
+
+On by default: the launcher's **Aspect ratio** row chooses **16:9
+widescreen** or the original **4:3**. In widescreen the court widens to both
+sides and everything on it carries on into the extra space: the street, the
+buildings, the hoops, the players and the ball. At the far ends of the
+court, past where the game's artwork ends, the side is black. The bottom HUD
+(portraits, money, power-up names) sits at the screen edges, and the
+off-screen arrows point from the widened edges, hidden for players you can
+already see. Menus, character select, breaks and the stats screen keep their
+4:3 picture.
+
+It only changes what is drawn: the game plays exactly the same in both modes
+(identical game memory throughout a scripted match). How it works and how it
+was checked: [`docs/WIDESCREEN.md`](docs/WIDESCREEN.md).
+
 ## Status
 
-Scaffolded on 2026-10-18 — **not yet a working port.** The layout, build,
-regeneration pipeline, CI, and packaging are wired up; the game does not run
-until the host work in `src/game_rtl.c` is done. See
-[Porting from here](#porting-from-here).
+**Playable** (as of 2026-10-22): boot, attract demo, menus, character
+select, exhibition matches through the stats screen, and a full one-player
+tournament, on Windows. Two-player games, and the tournament screens in
+widescreen, have not been checked yet.
+
+- **Graphics.** Fixed during the port and checked against bsnes: one-line
+  HUD artefacts on the court and under the scoreboard (HDMA ran a line late
+  in the framework), and black squares flashing on character select (the
+  portrait decompressor overran the frame). The teal line at the bottom of
+  Sylvester's character-select screen is in the original game.
+- **Audio.** Correct with `VSync = adaptive` (see
+  [`PLAYING.md`](PLAYING.md#options)); with plain VSync the music can skip.
+- **Native code.** 1,735 compiled variants, seeded from five coverage
+  captures of the attract mode and menus, matches and a full tournament
+  (`recomp/coverage/`). 147 still run on the interpreter, mostly where the
+  analyzer cannot prove how a routine exits; frames take 2-4 ms either way.
+- **Mods**: a *Testing aids* package on the launcher's Mods page, off by
+  default, with *Team 1 always wins* (`src/mod_team1_wins.c`): team 1's
+  score is kept two points ahead once team 2 scores, for playing through a
+  tournament while testing.
+
+Open items and what has been ruled out are in
+[`KNOWN_ISSUES.md`](KNOWN_ISSUES.md).
 
 ## ROM identity
 
 | | |
 |---|---|
 | File | `Looney Tunes B-Ball (USA).sfc` |
-| Publisher | — |
-| Developer | — |
-| Year | — |
+| Publisher | Sunsoft |
+| Developer | Sculptured Software |
+| Year | 1995 |
 | Mapping | lorom |
 | Region | USA (North America) |
 | Coprocessor | none |
@@ -37,79 +79,107 @@ revision fails immediately instead of producing subtly wrong output.
 
 ## Build
 
+On Windows, configure with Ninja and clang (the retcomm `cmake-clang-v1`
+toolchain): the default Visual Studio generator uses MSVC, which cannot
+compile the framework. The analyzer needs Rust (`cargo`) the first time.
+
 ```sh
-git submodule update --init --recursive
-bash tools/regen.sh --rom /path/to/Looney Tunes B-Ball (USA).sfc
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+git clone --recursive https://github.com/SlippyGetBackHere/Looney-Tunes-B-Ball-Recomp.git
+cd Looney-Tunes-B-Ball-Recomp
+bash tools/regen.sh --rom "/path/to/Looney Tunes B-Ball (USA).sfc"
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
 cmake --build build -j
 ```
 
-The ROM does not have to live in the repository — keeping it on your own
-drive is the better habit, and `SNESRECOMP_ROM` sets the path once for a
-shell. Without either, `tools/regen.sh` finds `Looney Tunes B-Ball (USA).sfc` at the repo root,
-then the path the setup wizard recorded in `rom.cfg`; `.gitignore` blocks
-both from ever being committed.
+The `snesrecomp` submodule comes from a fork,
+[SlippyGetBackHere/snesrecomp](https://github.com/SlippyGetBackHere/snesrecomp),
+branch `local/looney-tunes-b-ball`: upstream plus four fixes this port needs
+that are not upstream yet. `git clone --recursive` fetches it.
+`patches/README.md` lists the fixes and how to re-apply them to upstream;
+`docs/UPSTREAM_ISSUES.md` lists every framework problem the port ran into.
 
-`tools/regen.sh` verifies the ROM, generates `src/gen/*.c`, and re-syncs
-`recomp/funcs.h`. Re-run it whenever you change anything under `recomp/`.
+The ROM does not have to live in the repository; keeping it on your own
+drive is the better habit, and `SNESRECOMP_ROM` sets the path once for a
+shell. Without either, `tools/regen.sh` finds `Looney Tunes B-Ball (USA).sfc`
+at the repo root, then the path the setup wizard recorded in `rom.cfg`;
+`.gitignore` blocks both from ever being committed.
+
+`tools/regen.sh` verifies the ROM, generates `src/gen/*.c` from the analysis
+input and the coverage captures, and re-syncs `recomp/funcs.h`. Re-run it
+whenever you change anything under `recomp/`.
 
 ## Run
 
 ```sh
-./build/LooneyTunesBBallSNESRecomp                     # launcher picks the ROM
-./build/LooneyTunesBBallSNESRecomp /path/to/Looney Tunes B-Ball (USA).sfc # or name it and skip the launcher
+./build/LooneyTunesBBallSNESRecomp                                          # launcher picks the ROM
+./build/LooneyTunesBBallSNESRecomp "/path/to/Looney Tunes B-Ball (USA).sfc" # or name it and skip the launcher
 ```
 
 With no ROM on the command line the build opens the recomp-ui launcher: a ROM
 picker with a verification badge, plus display / audio / input settings. Your
 choice is cached in `rom.cfg` beside the executable, so the next launch opens
-on it and "Skip launcher on boot" makes it immediate. If the launcher is not
-built in (`--no-recomp-ui`), the host falls back to a native file picker.
+on it and "Skip launcher on boot" makes it immediate.
 
-Either way the ROM is checked against the digests above before anything boots
-— a dump that could not have produced this build is refused at the door rather
-than mis-executing ten frames in.
+Either way the ROM is checked against the digests above before anything
+boots: a dump that could not have produced this build is refused at the door
+rather than mis-executing ten frames in.
 
 ## Layout
 
 | Path | What lives there |
 |---|---|
 | `recomp/` | Analysis input: `bank*.cfg`, `symbols.toml`, generated `funcs.h` |
-| `rom_identity.txt` | ROM digests — read by the build, `tools/regen.sh` and CI |
-| `src/` | Host code you own: `main.c`, `game_rtl.c` |
-| `src/gen/` | Generated C. Never committed — regenerate locally |
+| `recomp/coverage/` | Coverage captures that seed the analyzer (addresses and hit counts, no ROM data) |
+| `rom_identity.txt` | ROM digests, read by the build, `tools/regen.sh` and CI |
+| `src/` | Host code: `main.c` (identity, launcher rows, window), `game_rtl.c` (frame driver), `ltbb_widescreen.c` and `ltbb_oam_widen.c` (widescreen), `mod_team1_wins.c` |
+| `src/gen/` | Generated C. Never committed; regenerate locally |
 | `snesrecomp/` | Framework submodule (owns `lib/recomp-net`, `lib/retcomm-rbengine`) |
-| `tools/` | `regen.sh` — the ROM → C pipeline |
-| `scripts/` | `package_release.sh` — player-facing zip |
-| `framework_pins.txt` | Exact framework commits this project was scaffolded against |
+| `mods/` | The preloaded *Testing aids* mod package |
+| `tools/` | `regen.sh` (the ROM to C pipeline), `ws_baseline.py` (4:3 picture check) |
+| `scripts/` | `package_release.sh`: the player-facing setup pack |
+| `patches/` | The framework fixes on the fork branch, one patch per commit, with notes |
+| `docs/` | `WIDESCREEN.md`, `UPSTREAM_ISSUES.md` |
+| `framework_pins.txt` | Exact framework commits this project is pinned to |
+| `KNOWN_ISSUES.md` | Open issues, resolved ones, and what was ruled out |
 
-## Porting from here
+## How the port works
 
-The scaffold stops where the game-specific work starts. In rough order:
+- **Frame driver** (`src/game_rtl.c`): the framework's beam-aligned driver,
+  one frame per PPU field, interrupts taken where the beam latches them.
+- **Portrait decompressor** (`recomp/bank83.cfg`): its computed jumps
+  (`indirect_dispatch`) and its exits (`exit_mx_variant`) are declared, so it
+  and its callers compile, and an interpreted callee stops at the frame
+  deadline instead of running past vblank.
+- **Sprite emitter** (`recomp/bank00.cfg`, `src/ltbb_oam_widen.c`): the
+  routine at `$80:C3C0` that builds the sprite table is wrapped
+  (`hle_func`). The original runs unchanged, then a read-only pass adds the
+  sprites the game culled at the 4:3 edge that fall in the widescreen
+  margins, and adapts the off-screen arrows.
+- **Widescreen court** (`src/ltbb_widescreen.c`): the margins are drawn from
+  the court's four-screen tilemap strip in video memory, line by line from
+  the game's own per-line scroll, so the perspective floor lines up.
 
-1. **Make it boot.** `src/game_rtl.c` holds the frame driver. It starts on
-   the framework's beam-aligned driver (`snesrecomp/runner/src/beam_frame_driver.h`):
-   one frame per PPU field, interrupts taken where the beam latches them,
-   the field rasterized from the raster journal. A title whose main loop it
-   does not fit replaces those calls with its own driver.
-2. **Name things.** Add entries to `recomp/symbols.toml` as you identify
-   routines, then re-run `tools/regen.sh`. Set `emit = true` to promote one
-   into ahead-of-time analysis; leave it false to keep it interpreted.
-   Regen synchronizes the marked blocks in each bank cfg, creating missing
-   configs. Only proven variants become AOT code. See `recomp/README.md`.
-3. **Resolve dispatch misses.** After every run, deal with unresolved
-   indirect targets before anything else — they are the reason a port
-   diverges, and they are cheap to fix early.
-4. **Never synthesise a result** to get past uncovered code, and never edit
-   `src/gen/` by hand. Fix the config or the framework and regenerate.
+## Continuing
+
+- **Coverage.** Capture more of the game as described in
+  `snesrecomp/docs/COVERAGE_FEEDBACK.md`, add the capture to
+  `recomp/coverage/`, re-run `tools/regen.sh`, rebuild, and check the result
+  plays the same.
+- **The 4:3 picture.** `python tools/ws_baseline.py compare <route>`
+  (`attract`, `match`, `charselect`) replays a scripted route and compares
+  every sampled frame with the recorded hashes. Re-record after a regen
+  that changes what is compiled.
+- **Never edit `src/gen/`** or synthesise a result to get past uncovered
+  code. Fix the config or the framework and regenerate.
 
 ## Multiplayer
 
-Two players, one controller per port.
+Two players on one PC, one controller each. Netplay is not built into this
+target.
 
 ## License
 
 This project's own source is under the license in `LICENSE`. The framework
-carries its own terms — see `snesrecomp/LICENSE` and
+carries its own terms; see `snesrecomp/LICENSE` and
 `snesrecomp/THIRD_PARTY_ATTRIBUTION.md`. Neither covers the game data, which
 is not distributed here.

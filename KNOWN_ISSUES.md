@@ -66,9 +66,10 @@ code stops at the frame deadline) and `snesrecomp-anchor-band-2bpp.patch`
 
 ## Coverage, and gameplay running interpreted
 
-Compiled code is seeded from three coverage captures in `recomp/coverage/`:
-attract mode and the menus, a first tournament match, and a full one-player
-tournament (played with the "Team 1 always wins" testing mod). Add captures
+Compiled code is seeded from five coverage captures in `recomp/coverage/`:
+attract mode and the menus, a first tournament match, a full one-player
+tournament (played with the "Team 1 always wins" testing mod), and two
+play-check sessions that added nothing new. Add captures
 as more of the game is played (snesrecomp/docs/COVERAGE_FEEDBACK.md), then
 run `tools/regen.sh`.
 
