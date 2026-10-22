@@ -1,7 +1,7 @@
 [submodule "snesrecomp"]
 	path = snesrecomp
-	url = https://github.com/mstan/snesrecomp.git
-	branch = main
+	url = https://github.com/SlippyGetBackHere/snesrecomp.git
+	branch = local/looney-tunes-b-ball
 [submodule "recomp-ui"]
 	path = recomp-ui
 	url = https://github.com/mstan/recomp-ui.git

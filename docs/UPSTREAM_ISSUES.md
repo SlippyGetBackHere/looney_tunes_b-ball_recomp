@@ -8,16 +8,18 @@ today, and what a fix upstream would look like.
 
 | # | Area | This project today |
 |---|---|---|
-| 1 | HDMA applied one line late | local patch |
-| 2 | `generate` cannot combine captures from different builds | local patch (from Strike Gunner) |
-| 3 | Nested interpreter runs ignore the frame deadline | local patch |
+| 1 | HDMA applied one line late | fork commit |
+| 2 | `generate` cannot combine captures from different builds | fork commit (from Strike Gunner) |
+| 3 | Nested interpreter runs ignore the frame deadline | fork commit |
 | 4 | `debug_server.c` misses `<errno.h>` | build flag for trace builds |
 | 5 | VSync default makes audio skip | `VSync = adaptive` in config.ini |
 | 6 | Title-bar click stalls audio | documented, not worked around |
 | 7 | Launcher has no widescreen control for SNES ports | aspect row repurposed in `src/main.c` |
-| 8 | Widescreen anchor band ignored on 2bpp layers | local patch |
+| 8 | Widescreen anchor band ignored on 2bpp layers | fork commit |
 
-The four patches are in `patches/` with their evidence in
+The four fixes are commits on the fork branch the submodule uses
+(`SlippyGetBackHere/snesrecomp`, `local/looney-tunes-b-ball`) and patches in
+`patches/` with their evidence in
 `patches/README.md`; the summaries below do not repeat all of it.
 
 ## 1. HDMA applied one line late

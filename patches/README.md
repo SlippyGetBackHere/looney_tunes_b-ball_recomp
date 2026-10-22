@@ -1,9 +1,15 @@
-# Local framework patches
+# Framework fixes
 
-The `snesrecomp` submodule is pinned to upstream
-`a6be9756285f26ccc74539c811d4d23d57d8c33d` (see `framework_pins.txt`). The
-patches below are applied to its working tree; none has been pushed or
-offered upstream yet.
+The `snesrecomp` submodule comes from a fork,
+[SlippyGetBackHere/snesrecomp](https://github.com/SlippyGetBackHere/snesrecomp),
+branch `local/looney-tunes-b-ball`: upstream
+`a6be9756285f26ccc74539c811d4d23d57d8c33d` plus the four fixes below, one
+commit each, pinned in `framework_pins.txt`. `git clone --recursive` fetches
+it; nothing has to be applied by hand. None of the fixes has been offered
+upstream yet (`docs/UPSTREAM_ISSUES.md`).
+
+The patch files here are the same four commits, kept so the fixes can be
+re-applied to a newer upstream (below).
 
 ## snesrecomp-hdma-line0.patch
 
@@ -79,14 +85,15 @@ the 4:3 baseline matches on all three routes, and on 16:9 frames of the
 `match` route nothing above the HUD (line 176) changes, while the money and
 power-up text move with their portraits.
 
-## Applying
+## Moving to a newer upstream
 
-After a fresh clone or `git submodule update`, from the project root:
+Check out the new upstream commit in `snesrecomp` on a new branch, apply the
+patches that upstream has not absorbed, one commit each:
 
     git -C snesrecomp apply ../patches/snesrecomp-hdma-line0.patch
     git -C snesrecomp apply ../patches/snesrecomp-generate-coverage-dir.patch
     git -C snesrecomp apply ../patches/snesrecomp-nested-deadline-yield.patch
     git -C snesrecomp apply ../patches/snesrecomp-anchor-band-2bpp.patch
 
-Moving to a newer upstream framework: check out the new commit in
-`snesrecomp`, re-apply, and drop any patch upstream has absorbed.
+then push the branch to the fork, point `.gitmodules` and
+`framework_pins.txt` at it, and drop any patch upstream has taken.

@@ -51,10 +51,11 @@ build:
 
 The fix belongs in the framework.
 
-## Framework patches carried locally
+## Framework fixes not upstream yet
 
-Four patches in `patches/` must be applied to the `snesrecomp` submodule
-after a fresh clone or a submodule update: `snesrecomp-hdma-line0.patch` (HDMA
+The `snesrecomp` submodule comes from a fork branch
+(`SlippyGetBackHere/snesrecomp`, `local/looney-tunes-b-ball`) carrying four
+fixes on top of upstream, also kept as patches in `patches/`: `snesrecomp-hdma-line0.patch` (HDMA
 applied one line late in the frame driver),
 `snesrecomp-generate-coverage-dir.patch` (`generate --coverage-dir`, so
 captures from different builds combine),
