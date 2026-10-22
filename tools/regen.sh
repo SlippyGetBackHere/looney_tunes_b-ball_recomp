@@ -14,7 +14,12 @@
 #                 habit, and SNESRECOMP_ROM sets it once for a shell.
 #   --no-verify   skip the ROM digest check (for a revision this project has
 #                 not been pinned to yet — expect the generated C to differ)
-#   --cfg-roots   seed analysis from every func declaration in recomp/*.cfg
+#   --no-cfg-roots  seed analysis only from symbols.toml and coverage, not
+#                 from every func declaration in recomp/*.cfg. The default
+#                 seeds from them, as the launcher's Generate & rebuild does,
+#                 so both produce the same code: the sprite emitter's
+#                 compiled body (func LtbbOamEmitBody, bank00.cfg) is only
+#                 reached that way. --cfg-roots is accepted and is the default.
 #   -h|--help     this message
 set -euo pipefail
 
@@ -23,13 +28,14 @@ ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT"
 
 VERIFY=1
-CFG_ROOTS=0
+CFG_ROOTS=1
 ROM=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --rom) ROM=$2; shift 2 ;;
     --no-verify) VERIFY=0; shift ;;
     --cfg-roots) CFG_ROOTS=1; shift ;;
+    --no-cfg-roots) CFG_ROOTS=0; shift ;;
     -h|--help) sed -n '2,/^set -euo/p' "$0" | sed -n '/^# /p' | sed 's/^# //'; exit 0 ;;
     *) echo "regen.sh: unknown flag: $1 (try --help)" >&2; exit 2 ;;
   esac
