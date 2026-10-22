@@ -37,9 +37,9 @@ was checked: [`docs/WIDESCREEN.md`](docs/WIDESCREEN.md).
 ## Status
 
 **Playable** (as of 2026-10-22): boot, attract demo, menus, character
-select, exhibition matches through the stats screen, and a full one-player
-tournament, on Windows. Two-player games, and the tournament screens in
-widescreen, have not been checked yet.
+select, exhibition matches through the stats screen, a full one-player
+tournament, and two-player games (play-checked in widescreen), on Windows.
+The tournament screens have not been checked in widescreen yet.
 
 - **Graphics.** Fixed during the port and checked against bsnes: one-line
   HUD artefacts on the court and under the scoreboard (HDMA ran a line late

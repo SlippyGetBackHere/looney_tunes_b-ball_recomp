@@ -245,5 +245,5 @@ Checked:
 
 ## Not started
 
-P15. Tournament screens and two-player games are not yet checked in
-widescreen.
+P15. Tournament screens are not yet checked in widescreen. Two-player games
+were play-checked in widescreen on 2026-10-22 and showed no problems.
