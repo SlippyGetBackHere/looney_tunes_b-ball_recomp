@@ -14,7 +14,7 @@ reached. The court can be played in 16:9 widescreen.
 > generated locally from your own copy and is never committed.
 
 **Just want to play?** Download the latest release from the
-[Releases page](https://github.com/SlippyGetBackHere/Looney-Tunes-B-Ball-Recomp/releases)
+[Releases page](https://github.com/SlippyGetBackHere/looney_tunes_b-ball_recomp/releases)
 and see [`PLAYING.md`](PLAYING.md): setup, controls, options and how to report
 a problem. The rest of this file is for building and developing the port.
 
@@ -84,8 +84,8 @@ toolchain): the default Visual Studio generator uses MSVC, which cannot
 compile the framework. The analyzer needs Rust (`cargo`) the first time.
 
 ```sh
-git clone --recursive https://github.com/SlippyGetBackHere/Looney-Tunes-B-Ball-Recomp.git
-cd Looney-Tunes-B-Ball-Recomp
+git clone --recursive https://github.com/SlippyGetBackHere/looney_tunes_b-ball_recomp.git
+cd looney_tunes_b-ball_recomp
 bash tools/regen.sh --rom "/path/to/Looney Tunes B-Ball (USA).sfc"
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
 cmake --build build -j
