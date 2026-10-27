@@ -20,6 +20,33 @@ reached. The court can be played in 16:9 widescreen.
 and see [`PLAYING.md`](PLAYING.md): setup, controls, options and how to report
 a problem. The rest of this file is for building and developing the port.
 
+## Mods
+
+Optional extras on the launcher's **Mods** page, all off by default, so the
+game plays as the original unless you turn something on.
+
+**Gameplay** (new in 0.2.0)
+
+- **Shot clock off**: the shot clock never runs down, so there is no shot
+  clock violation; hold the ball as long as you like. The game clock runs as
+  normal.
+- **Change tournament difficulty**: the main menu's Difficulty can be
+  changed for One Player and Two Player Tournament, instead of being fixed at
+  5. The first match is played at the difficulty you choose, and each later
+  round gets harder, as in the original.
+- **CPU doesn't steal**: CPU opponents don't swipe at or hit you to steal
+  the ball, even when you're right next to them. They still pass, shoot,
+  use powers, block and rebound. Options let them steal only when you get
+  right next to them, apply the same to your CPU teammate, or stop their
+  jumps on defense too.
+
+**Testing**
+
+- **Team 1 always wins**: keeps team 1 two points ahead once team 2 has
+  scored, for seeing the whole tournament while testing.
+
+How to use them is in [`PLAYING.md`](PLAYING.md#mods).
+
 ## Widescreen
 
 On by default: the launcher's **Aspect ratio** row chooses **16:9
