@@ -70,9 +70,29 @@ The tournament screens have not been checked in widescreen yet.
   captures of the attract mode and menus, matches and a full tournament
   (`recomp/coverage/`). 147 still run on the interpreter, mostly where the
   analyzer cannot prove how a routine exits; frames take 2-4 ms either way.
-- **Mods**: a *Testing aids* package on the launcher's Mods page, off by
-  default, with *Team 1 always wins* (`src/mod_team1_wins.c`): team 1's
-  score is kept two points ahead once team 2 scores, for playing through a
+- **Mods**: on the launcher's Mods page, all off by default; off, the game
+  is the original (the 4:3 picture check matches with the code they hook
+  into). *Gameplay options* (`mods/preloaded/packages/looneytunesbball.gameplay`):
+  - *Shot clock off* (`src/mod_no_shot_clock.c`): the shot clock's frame
+    counter ($0DA7) is put back every frame, so $0DA5 stays at 15 and never
+    runs out. The game clock is untouched.
+  - *Change tournament difficulty* (`src/mod_tournament_difficulty.c`):
+    the menu's input handler at $81:C7AC runs on the interpreter, so the
+    mod changes four of its bytes in the cartridge buffer: the branch that
+    refuses left/right on Difficulty in tournament modes, and the three
+    calls to the menu refresh ($81:CB35, which forces 5), pointed at a helper
+    in unused padding ($81:FF60) that runs the refresh with the tournament
+    flag hidden. The tournament's own round-by-round rise is kept.
+  - *CPU doesn't steal* (`src/mod_cpu_no_steal.c`): the per-frame update's
+    call to the player logic ($83:F3AE, interpreted) is pointed at a helper
+    in padding ($83:FF40) that clears the steal buttons from the virtual
+    buttons the CPU's AI pressed for its defenders when your team has the
+    ball: Y (its chasing steal) and X (its swipe within 12 units, $81:946C).
+    Options keep X (steals only at close range), apply the same to your CPU
+    teammate, or clear B (jump) too.
+
+  *Testing aids*: *Team 1 always wins* (`src/mod_team1_wins.c`) keeps team
+  1's score two points ahead once team 2 scores, for playing through a
   tournament while testing.
 
 Open items and what has been ruled out are in

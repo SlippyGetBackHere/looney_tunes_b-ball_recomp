@@ -43,6 +43,9 @@ add_executable(LooneyTunesBBallSNESRecomp
     src/game_rtl.c
     src/gen_stubs.c
     src/mod_team1_wins.c
+    src/mod_no_shot_clock.c
+    src/mod_tournament_difficulty.c
+    src/mod_cpu_no_steal.c
     src/ltbb_widescreen.c
     src/ltbb_oam_widen.c
 )

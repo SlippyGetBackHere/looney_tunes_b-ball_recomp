@@ -1,0 +1,76 @@
+format_version = 1
+id = "looneytunesbball.gameplay"
+version = "1.0.0"
+name = "Gameplay options"
+author = "SlippyGetBackHere"
+description = "Optional changes to how Looney Tunes B-Ball plays. Everything here is off by default; the stock game is unchanged unless you turn a feature on."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "looneytunesbball-usa"
+rom_sha256 = "76ba0fc1f5c1f39354bb3173a600f23915f1191f400f7d525d220b4b3c8d958d"
+
+[[feature]]
+id = "no_shot_clock"
+name = "Shot clock off"
+description = "The shot clock never runs down, so there is no shot clock violation: hold the ball as long as you like. It stays at 15 on the scoreboard. The game clock runs as normal."
+group = "Gameplay"
+default_enabled = false
+
+[[plugin]]
+feature = "no_shot_clock"
+id = "looneytunesbball.no_shot_clock"
+
+[[feature]]
+id = "tournament_difficulty"
+name = "Change tournament difficulty"
+description = "The main menu's Difficulty can be changed when a tournament mode is selected (one or two players), instead of being fixed at 5. The tournament starts from the difficulty you choose and gets harder each round, as in the original."
+group = "Gameplay"
+default_enabled = false
+
+[[plugin]]
+feature = "tournament_difficulty"
+id = "looneytunesbball.tournament_difficulty"
+
+[[feature]]
+id = "cpu_no_steal"
+name = "CPU doesn't steal"
+description = "CPU opponents don't swipe at or hit you to steal the ball, even when you're right next to them. They still pass, shoot, use powers, and jump for blocks and rebounds (unless you turn jumps off below). The options can let them steal at close range, and can make your CPU teammate stop stealing too."
+group = "Gameplay"
+default_enabled = false
+
+[[plugin]]
+feature = "cpu_no_steal"
+id = "looneytunesbball.cpu_no_steal"
+
+[[option]]
+feature = "cpu_no_steal"
+id = "steals"
+label = "CPU steals"
+type = "choice"
+default = "never"
+
+[[option.choice]]
+value = "never"
+label = "Never"
+
+[[option.choice]]
+value = "close"
+label = "Only when you get right next to them"
+
+[[option]]
+feature = "cpu_no_steal"
+id = "teammate"
+label = "Also for my CPU teammate"
+description = "Your CPU teammate follows the same rules when the other team has the ball."
+type = "boolean"
+default = false
+
+[[option]]
+feature = "cpu_no_steal"
+id = "block_jumps"
+label = "No jumps on defense"
+description = "CPU defenders don't jump, so they don't block shots or jump for rebounds."
+type = "boolean"
+default = false

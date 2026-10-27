@@ -102,15 +102,34 @@ In the launcher, or in `build\config.ini` under `[Graphics]`:
 
 ## Mods
 
-The launcher's **Mods** page has one package, **Testing aids**, off by
-default:
+Optional changes are on the launcher's **Mods** page. Everything there is
+off by default, so the game plays as the original unless you turn something
+on. Change them before clicking **Play**.
 
-- **Team 1 always wins**: team 1 (the left score on the scoreboard) is kept
-  two points ahead once team 2 has scored, so every match ends in a team 1
-  win, tournament included. Both teams still play and score normally. Meant
-  for seeing the whole game while testing.
+- **Gameplay options → Shot clock off**: the shot clock never runs down, so
+  there is no shot clock violation and you can hold the ball as long as you
+  like. The scoreboard keeps showing 15. The game clock runs as normal.
+- **Gameplay options → Change tournament difficulty**: in the main menu, the
+  Difficulty line can be changed when One Player Tournament or Two Player
+  Tournament is selected, instead of being fixed at 5. The first match is
+  played at the difficulty you choose (1 to 10), and each later round gets
+  harder, as in the original.
+- **Gameplay options → CPU doesn't steal**: CPU opponents don't swipe at or
+  hit you to steal the ball, not even when you're right next to them. They
+  still pass, shoot, use their powers, block and rebound. Options:
+  - **CPU steals**: *Never* (the default), or *Only when you get right next
+    to them*, which stops them chasing you down for steals but still lets
+    them reach in when you stand beside them.
+  - **Also for my CPU teammate**: your CPU teammate follows the same rule
+    when the other team has the ball.
+  - **No jumps on defense**: they won't jump to block shots or for rebounds
+    either.
+- **Testing aids → Team 1 always wins**: team 1 (the left score on the
+  scoreboard) is kept two points ahead once team 2 has scored, so every
+  match ends in a team 1 win, tournament included. Both teams still play
+  and score normally. Meant for seeing the whole game while testing.
 
-When reporting a problem, say whether it was on.
+When reporting a problem, say which mods were on.
 
 ## Known issues
 
